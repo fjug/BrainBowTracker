@@ -10,6 +10,7 @@ numNuclei=1829;
 maxZ=21;
 
 colors=cell(numNuclei,1); 
+positions=cell(numNuclei,1); 
 membraneIntensity=cell(numNuclei,1); 
 for segCoordX= 1:256
     x=(segCoordX-1)*8+4;
@@ -20,9 +21,13 @@ for z=1:maxZ
     segCoordZ=(z-1)*4+2;
     whichNucleus=segmentation(segCoordX,segCoordY,segCoordZ);
     if (whichNucleus>0 && whichNucleus<=numNuclei) 
-        new = [ZIBAmira_C1_digit2_tif_mat(x,y,z); ZIBAmira_C3_digit2_tif_mat(x,y,z); ZIBAmira_C4_digit2_tif_mat(x,y,z)];
+        newPos = [x;y;z];
+        whichPositions = cell2mat(positions(whichNucleus));
+        positions(whichNucleus) = {horzcat(whichPositions, newPos)}; 
+        
+        newColor = [ZIBAmira_C1_digit2_tif_mat(x,y,z); ZIBAmira_C3_digit2_tif_mat(x,y,z); ZIBAmira_C4_digit2_tif_mat(x,y,z)];
         whichColors = cell2mat(colors(whichNucleus));
-        colors(whichNucleus) = {horzcat(whichColors, new)}; 
+        colors(whichNucleus) = {horzcat(whichColors, newColor)}; 
     end
 
     whichMembrane = [membraneSegmentation(segCoordX,segCoordY,segCoordZ)];

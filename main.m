@@ -45,60 +45,99 @@ segResX=256;
 segResY=512;
 maxZ=21;
 
-fprintf('Starting to read segmented cell voxel colors...\n');
-if ( exist('colors_t', 'var')~=1 ) 
-    colors_t   = getVoxelColors(seg_t,   numNuclei_t,   img_t_r,   img_t_g,   img_t_b);
+fprintf('Starting to read segmented cell voxel colors...');
+do = 1;
+if ( exist('segpos_t', 'var')~=1 || exist('colors_t', 'var')~=1 ) 
+    if do
+        fprintf('\n');
+        do=0;
+    end
+    [segpos_t,   colors_t]   = getSegmentationVoxels(seg_t,   numNuclei_t,   img_t_r,   img_t_g,   img_t_b);
 end
-if ( exist('colors_tp1', 'var')~=1 ) 
-    colors_tp1 = getVoxelColors(seg_tp1, numNuclei_tp1, img_tp1_r, img_tp1_g, img_tp1_b);
+if ( exist('segpos_tp1', 'var')~=1 || exist('colors_tp1', 'var')~=1 ) 
+    if do
+        fprintf('\n');
+        do=0;
+    end
+    [segpos_tp1, colors_tp1] = getSegmentationVoxels(seg_tp1, numNuclei_tp1, img_tp1_r, img_tp1_g, img_tp1_b);
 end
 fprintf(' ...done!\n');
 
 
+if (0)
+    % median color per cell
+    figure(1);
+    fprintf('Plotting median colors for t...');
+    plotMedianColorsScatter3(colors_t,'membrane CFP','cytosolic YFP','cytosolic RFP');
+    fprintf(' ...done!\n');
 
-maxCol=65535;
-h=gca;
-axis(h,[0 maxCol 0 maxCol 0 maxCol 0 255]);
-xlabel(h,'membrane CFP');
-ylabel(h,'cytosolic YFP');
-zlabel(h,'cytosolic RFP');
-dotSize=5;
+    % mean and sd of colors per cell
+    figure(2);
+    fprintf('Plotting colors for t...');
+    plotColorsScatter3(colors_t,'membrane CFP','cytosolic YFP','cytosolic RFP',1);
+    fprintf(' ...done!\n');
 
-% mean colors:
-figure(1);
-format shortG;
-for c=1:numNuclei_t
-    test=cell2mat(colors_t(c));
-    testSize=size(test,2);
-    if (testSize>0)
-        test=median(double ( cell2mat( colors_t(c) ) ), 2); % double is only needed because MY matlab version sucks... google it...
-        testSize=size(test,2);    
-        testOnes=ones(1,testSize);
-        testCol=testOnes*c;
-        scatter3(test(1,:),test(2,:),test(3,:),testOnes*dotSize,testCol);
-        hold on;
-    end
+    % all individual voxel colors
+    figure(3);
+    fprintf('Plotting colors for t...');
+    plotColorsScatter3(colors_t,'membrane CFP','cytosolic YFP','cytosolic RFP',0);
+    fprintf(' ...done!\n');
 end
-hold off;
 
-
-figure(2);
-format shortG;
-% individual color values, or mean+std:
-showMeanAndStd=1;
-for c=1:numNuclei_t
-    test=cell2mat(colors_t(c));
-    testSize=size(test,2);
-    if (testSize>0)
-        if (showMeanAndStd)
-            test=mean(cell2mat(colors_t(c)),2);
-            dotSize=norm(std(single(cell2mat(colors_t(c))),0,2));
-            testSize=size(test,2);    
-        end
-        testOnes=ones(1,testSize);
-        testCol=testOnes*c;
-        scatter3(test(1,:),test(2,:),test(3,:),testOnes*dotSize,testCol);
-        hold on;
+fprintf('Starting fingerprinting...');
+do = 1;
+% compute finger prints (FP's) of segmented cell areas
+if ( exist('segFPs_t', 'var')~=1 ) 
+    if do
+        fprintf('\n');
+        do=0;
     end
+    segFPs_t   = computeSegmentationFPs(colors_t);
 end
-hold off;
+if ( exist('segFPs_tp1', 'var')~=1 ) 
+    if do
+        fprintf('\n');
+        do=0;
+    end
+    segFPs_tp1 = computeSegmentationFPs(colors_tp1);
+end
+% compute finger prints (FP's) of segmented cell surrounds
+if ( exist('surrFPs_t', 'var')~=1 || exist('surrpos_t', 'var')~=1 || exist('surrcol_t', 'var')~=1 ) 
+    if do
+        fprintf('\n');
+        do=0;
+    end
+    [surrFPs_t,surrpos_t,surrcol_t] = computeSurroundFPs(15.0, 0.2768*8, 10.0/4,... 
+                                                         segpos_t, seg_t, numNuclei_t,...
+                                                         img_t_r, img_t_g, img_t_b);
+end
+if ( exist('surrFPs_tp1', 'var')~=1 || exist('surrpos_tp1', 'var')~=1 || exist('surrcol_tp1', 'var')~=1 ) 
+    if do
+        fprintf('\n');
+        do=0;
+    end
+    [surrFPs_tp1,surrpos_tp1,surrcol_tp1] = computeSurroundFPs(15.0, 0.2768*8, 10.0/4,... 
+                                                         segpos_tp1, seg_tp1, numNuclei_tp1,...
+                                                         img_tp1_r, img_tp1_g, img_tp1_b);
+end
+fprintf(' ...done!\n');
+
+fprintf('Starting building ProxGraph...');
+do = 1;
+% build a graph out of the segmentation 
+% (cells are connected if they are close to each other)
+if ( exist('proxGraph_t', 'var')~=1 ) 
+    if do
+        fprintf('\n');
+        do=0;
+    end
+    proxGraph_t = buildProxGraph(seg_t, numNuclei_t, surrpos_t, surrcol_t);
+end
+if ( exist('proxGraph_t', 'var')~=1 ) 
+    if do
+        fprintf('\n');
+        do=0;
+    end
+    proxGraph_tp1 = buildProxGraph(seg_tp1, numNuclei_tp1, surrpos_tp1, surrcol_tp1);
+end
+fprintf(' ...done!\n');

@@ -1,5 +1,5 @@
-function [ colors ] = getVoxelColors( seg, segnum, img_r, img_g, img_b )
-% reading colors of all voxels of segmented cells from image data
+function [ positions, colors ] = getSegmentationVoxels( seg, segnum, img_r, img_g, img_b )
+% reading positions and colors of all voxels of segmented cells from image data
 %   seg:    Kainm?llersche segmentation matrix
 %   segnum: number of segmented cells (this has to be given because
 %           in voxels where two segmentations overlap the cell-numbers
@@ -24,25 +24,40 @@ maxZ = size(img_r,3);
 % (o) currently: x/y resolutions in segmentations reduced
 % (o) z-resolution augmented
 colors=cell(segnum,1); 
+positions=cell(segnum,1); 
+msg_n = 0;
+
+fprintf('   getSegmentedVoxels: ');
 for segCoordX = 1:segResX
+    fprintf(repmat('\b',1,msg_n));
+    msg = sprintf('%.1f%%...', 100*(segCoordX/segResX)); % just to be able to monitor progress...
+    fprintf('%s',msg);
+    msg_n=numel(msg);
+    
     imgCoordX = (segCoordX-1)*8+4;
-    fprintf('   %.1f%%...', 100*(segCoordX/segResX)); % just to be able to monitor progress...
+    
     for segCoordY = 1:segResY
         imgCoordY = (segCoordY-1)*8+4;
         for imgCoordZ = 1:maxZ
             segCoordZ = (imgCoordZ-1)*4+2;
             whichNucleus=seg(segCoordX,segCoordY,segCoordZ);
             if (whichNucleus>0 && whichNucleus<=segnum) 
-                new = [img_r(imgCoordX,imgCoordY,imgCoordZ); 
-                       img_g(imgCoordX,imgCoordY,imgCoordZ); 
-                       img_b(imgCoordX,imgCoordY,imgCoordZ)];
+                newPos = [segCoordX;segCoordY;segCoordZ];
+                whichPositions = cell2mat(positions(whichNucleus));
+                positions(whichNucleus) = {horzcat(whichPositions, newPos)}; 
+        
+
+                newCol = [img_r(imgCoordX,imgCoordY,imgCoordZ); 
+                          img_g(imgCoordX,imgCoordY,imgCoordZ); 
+                          img_b(imgCoordX,imgCoordY,imgCoordZ)];
                 whichColors = cell2mat(colors(whichNucleus));
-                colors(whichNucleus) = {horzcat(whichColors, new)}; 
+                colors(whichNucleus) = {horzcat(whichColors, newCol)}; 
             end
         end
     end
 end
-fprintf('\n');
 
+fprintf(repmat('\b',1,msg_n));
+fprintf('...done!\n');
 end
 
