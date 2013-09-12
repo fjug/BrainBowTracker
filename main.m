@@ -1,3 +1,5 @@
+addpath('./gboost-0.1.1/bin/');
+
 % loading the segmentations and image data at t and (t+1)
 fprintf('Starting to load time t...');
 if ( exist('seg_t', 'var')~=1 ) 
@@ -131,13 +133,17 @@ if ( exist('proxGraph_t', 'var')~=1 )
         fprintf('\n');
         do=0;
     end
-    proxGraph_t = buildProxGraph(seg_t, numNuclei_t, surrpos_t, surrcol_t);
+    proxGraph_t = buildProxGraph(seg_t, numNuclei_t, surrpos_t, segFPs_t);
 end
-if ( exist('proxGraph_t', 'var')~=1 ) 
+if ( exist('proxGraph_tp1', 'var')~=1 ) 
     if do
         fprintf('\n');
         do=0;
     end
-    proxGraph_tp1 = buildProxGraph(seg_tp1, numNuclei_tp1, surrpos_tp1, surrcol_tp1);
+    proxGraph_tp1 = buildProxGraph(seg_tp1, numNuclei_tp1, surrpos_tp1, segFPs_tp1);
 end
 fprintf(' ...done!\n');
+
+% finding the first mapping (1) in an undirected case (0)
+subg = localSubgraph( proxGraph_t, 33 );
+%[count,mappings] = graphmatch (subg, proxGraph_t, 1, 0);
