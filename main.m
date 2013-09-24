@@ -1,4 +1,5 @@
 addpath('./gboost-0.1.1/bin/');
+delete('scheiss.log');
 
 % loading the segmentations and image data at t and (t+1)
 fprintf('Starting to load time t...');
@@ -41,8 +42,8 @@ end
 fprintf(' ...done!\n');
 
 % setting some metadata
-numNuclei_t  =1829;
-numNuclei_tp1=1393;
+numNuclei_t   = 1829;
+numNuclei_tp1 = 1393;
 segResX=256;
 segResY=512;
 maxZ=21;
@@ -109,7 +110,7 @@ if ( exist('surrFPs_t', 'var')~=1 || exist('surrpos_t', 'var')~=1 || exist('surr
         fprintf('\n');
         do=0;
     end
-    [surrFPs_t,surrpos_t,surrcol_t] = computeSurroundFPs(15.0, 0.2768*8, 10.0/4,... 
+    [surrFPs_t,surrpos_t,surrcol_t] = computeSurroundFPs(10.0, 0.2768*8, 10.0/4,... 
                                                          segpos_t, seg_t, numNuclei_t,...
                                                          img_t_r, img_t_g, img_t_b);
 end
@@ -118,7 +119,7 @@ if ( exist('surrFPs_tp1', 'var')~=1 || exist('surrpos_tp1', 'var')~=1 || exist('
         fprintf('\n');
         do=0;
     end
-    [surrFPs_tp1,surrpos_tp1,surrcol_tp1] = computeSurroundFPs(15.0, 0.2768*8, 10.0/4,... 
+    [surrFPs_tp1,surrpos_tp1,surrcol_tp1] = computeSurroundFPs(10.0, 0.2768*8, 10.0/4,... 
                                                          segpos_tp1, seg_tp1, numNuclei_tp1,...
                                                          img_tp1_r, img_tp1_g, img_tp1_b);
 end
@@ -144,6 +145,32 @@ if ( exist('proxGraph_tp1', 'var')~=1 )
 end
 fprintf(' ...done!\n');
 
-% finding the first mapping (1) in an undirected case (0)
-subg = localSubgraph( proxGraph_t, 33 );
-%[count,mappings] = graphmatch (subg, proxGraph_t, 1, 0);
+figure(1);
+[ GA, GXY ] = getGraphLayout(proxGraph_t,segpos_t);
+gplot(GA,GXY,'-*');
+figure(2);
+[ GA, GXY ] = getGraphLayout(proxGraph_t);
+gplot(GA,GXY,'-*');
+
+
+for center=10:15 % numNuclei_t
+    % finding the first mapping (1) in an undirected case (0)
+    subg = localSubgraph( proxGraph_t, center );
+    [count,mappings] = graphmatch (subg, proxGraph_tp1, 0, 1);
+
+    figure(3);
+    [ gA, gXY ] = getGraphLayout(subg,segpos_t);
+    gplot(gA,gXY,'-*');
+    figure(4);
+    [ gA, gXY ] = getGraphLayout(subg);
+    gplot(gA,gXY,'-*');
+
+    if ( count > 0 )
+        fprintf('Cell %d -- MATCH FOUND!!!\n', center);
+        mappings
+        pause;
+    else
+        fprintf('Cell %d -- no fit!\n',center);
+        pause;
+    end
+end

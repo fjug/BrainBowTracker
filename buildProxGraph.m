@@ -39,9 +39,13 @@ for nodeFrom = 1:numNuclei
     
     for setIndex = 1:size(setOfNeighbors,2)
         nodeTo = setOfNeighbors(setIndex);
-        fpTo = encodeFPinUint32( segFPs{nodeTo} );
-        if ( nodeFrom < nodeTo ) 
+        if ( nodeTo <= numNuclei ) % we might have decided to build a graph not including ALL cells!
+            % fpTo = encodeFPinUint32( segFPs{nodeTo} );
+            fpTo = 0; % 0 is the 'fits always' FP!
+%             if ( nodeFrom < nodeTo ) 
             graph.edges = vertcat(graph.edges, uint32( [nodeFrom nodeTo fpTo] ));
+%             fprintf('Adding edge: [%d, %d, %d] \n',nodeFrom, nodeTo, fpTo);
+%             end
         end
     end
 end
