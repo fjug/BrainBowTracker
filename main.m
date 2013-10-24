@@ -119,7 +119,7 @@ if ( exist('surrFPs_tp1', 'var')~=1 || exist('surrpos_tp1', 'var')~=1 || exist('
         fprintf('\n');
         do=0;
     end
-    [surrFPs_tp1,surrpos_tp1,surrcol_tp1] = computeSurroundFPs(10.0, 0.2768*8, 10.0/4,... 
+    [surrFPs_tp1,surrpos_tp1,surrcol_tp1] = computeSurroundFPs(20.0, 0.2768*8, 10.0/4,... 
                                                          segpos_tp1, seg_tp1, numNuclei_tp1,...
                                                          img_tp1_r, img_tp1_g, img_tp1_b);
 end
@@ -149,28 +149,66 @@ figure(1);
 [ GA, GXY ] = getGraphLayout(proxGraph_t,segpos_t);
 gplot(GA,GXY,'-*');
 figure(2);
-[ GA, GXY ] = getGraphLayout(proxGraph_t);
-gplot(GA,GXY,'-*');
+[ GA, GXY ] = getGraphLayout(proxGraph_tp1,segpos_tp1);
+gplot(GA,GXY,'-*r');
 
 
-for center=10:15 % numNuclei_t
-    % finding the first mapping (1) in an undirected case (0)
+min_col_slack = 3;
+max_col_slack = 32;
+min_subg_n = 4;
+max_mappings = 1;
+candidates = [];
+for center=[ 8 38 162 1483 781 ]
+    fprintf('\nCELL: %d\n==========\n', center);
+    
+    % cut local subgraph centered at current cell to look at
     subg = localSubgraph( proxGraph_t, center );
-    [count,mappings] = graphmatch (subg, proxGraph_tp1, 0, 1);
 
+    % and show the beast!
     figure(3);
     [ gA, gXY ] = getGraphLayout(subg,segpos_t);
     gplot(gA,gXY,'-*');
     figure(4);
     [ gA, gXY ] = getGraphLayout(subg);
     gplot(gA,gXY,'-*');
+    
+    % check if subg is large enough to start search in t+1
+    if ( length(subg.nodelabels) < min_subg_n ) 
+        fprintf('Local subgraph is below minimal size for search to make sense...\n');
+        continue;
+    end
+    
+    % now start looking for monomorphisms
+    % note: color_slack is set to min at first and gets increased until a
+    % match is found. This could/should be replaced by some binary search!
+    color_slack = min_col_slack;
+    % THE MATCHING
+    [count,mappings] = graphmatch (subg, proxGraph_tp1, max_mappings, 1, 255, color_slack);
+    
+    while ( count == 0 && color_slack <= max_col_slack )
+        fprintf('No results using a color-slack of %d...\n',color_slack);
+        color_slack = color_slack + 1;
+        [count,mappings] = graphmatch (subg, proxGraph_tp1, max_mappings, 1, 255, color_slack);
+    end
 
     if ( count > 0 )
-        fprintf('Cell %d -- MATCH FOUND!!!\n', center);
-        mappings
-        pause;
+        fprintf('Cell %d -- %d of at max %d MATCH(ES) FOUND!!!\n', center, count, max_mappings);
+        candidates = getCandidates(mappings);
+        candidates
+        
+        c1 = candidates(1);
+        matchedG = localSubgraph( proxGraph_tp1, c1 );
+        
+        figure(5);
+        [ gA, gXY ] = getGraphLayout(matchedG,segpos_tp1);
+        gplot(gA,gXY,'-*r');
+        figure(6);
+        [ gA, gXY ] = getGraphLayout(matchedG);
+        gplot(gA,gXY,'-*r');
     else
-        fprintf('Cell %d -- no fit!\n',center);
-        pause;
+        fprintf('Cell %d -- Negativo!\n',center);
     end
+    
+    fprintf('\npress any key to continue...\n');
+    pause;
 end
